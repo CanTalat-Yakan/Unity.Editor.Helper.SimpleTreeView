@@ -22,9 +22,9 @@ namespace UnityEssentials
 
                 // Remove from old parent's children
                 _parent?._children.Remove(this);
-                _parent = value;
 
                 // Add to new parent's children
+                _parent = value;
                 if (_parent != null && !_parent._children.Contains(this))
                     _parent._children.Add(this);
             }
@@ -59,18 +59,20 @@ namespace UnityEssentials
     public class SimpleTreeView : TreeView
     {
         public TreeViewState TreeViewState;
+
         public SimpleTreeViewItem RootItem { get; private set; }
         public List<SimpleTreeViewItem> RootChildren { get; private set; }
 
         public SimpleTreeView(SimpleTreeViewItem rootItem,
-                             SimpleTreeViewItem[] rootChildren = null,
-                             int rowHeight = 20,
-                             bool showBorder = false,
-                             bool showAlternatingRowBackgrounds = false)
+                              SimpleTreeViewItem[] rootChildren = null,
+                              int rowHeight = 20,
+                              bool showBorder = false,
+                              bool showAlternatingRowBackgrounds = false)
             : base(new TreeViewState())
         {
             TreeViewState = state;
             RootItem = rootItem ?? new SimpleTreeViewItem("Root");
+            RootItem.depth = 0;
             RootChildren = rootChildren?.ToList() ?? new List<SimpleTreeViewItem>();
 
             base.rowHeight = rowHeight;
@@ -93,21 +95,18 @@ namespace UnityEssentials
 
         protected override TreeViewItem BuildRoot()
         {
+            // The invisible root
             var root = new TreeViewItem { id = 0, depth = -1, displayName = "Root" };
-            var allItems = new List<TreeViewItem>();
+            var items = new List<TreeViewItem> { RootItem };
 
-            // Add RootItem and its children
-            AddItemAndChildren(RootItem, allItems);
-
-            // Add root children and their children as if they are children of RootItem
+            // Add RootChildren and their children, all starting at depth 1
             foreach (var child in RootChildren)
-                AddItemAndChildrenAtDepth(child, RootItem.depth + 1, allItems);
+                AddItemAndChildrenAtDepth(child, 1, items);
 
-            //SetupParentsAndChildrenFromDepths(root, allItems);
+            SetupParentsAndChildrenFromDepths(root, items);
             return root;
         }
 
-        // Helper to add children at a specific depth
         private void AddItemAndChildrenAtDepth(SimpleTreeViewItem item, int depth, List<TreeViewItem> list)
         {
             item.depth = depth;
@@ -125,7 +124,6 @@ namespace UnityEssentials
         }
 
         protected override bool CanStartDrag(CanStartDragArgs args) =>
-            // Prevent dragging the RootItem
             !args.draggedItemIDs.Contains(RootItem.id);
         protected override void SetupDragAndDrop(SetupDragAndDropArgs args)
         {
@@ -149,10 +147,6 @@ namespace UnityEssentials
             if (draggedRows == null || draggedRows.Count == 0)
                 return DragAndDropVisualMode.None;
 
-            // Prevent dragging RootChildren to the invisible root (i.e., outside RootItem)
-            if (draggedRows.Any(item => RootChildren.Contains(item)) && (args.parentItem == null || args.parentItem is not SimpleTreeViewItem))
-                return DragAndDropVisualMode.None;
-
             if (args.performDrop)
             {
                 var newParent = args.parentItem as SimpleTreeViewItem;
@@ -162,23 +156,22 @@ namespace UnityEssentials
                     if (draggedItem == RootItem)
                         continue; // Skip root item
 
-                    if (newParent == RootItem) // Dropping on root item
+                    // Dropping on root item
+                    if (newParent == RootItem)
                     {
-                        // Make it a root child (Parent = null, add to RootChildren)
-                        if (draggedItem.Parent != null)
-                            draggedItem.Parent = null;
+                        draggedItem.Parent = null;
+
                         if (!RootChildren.Contains(draggedItem))
                             RootChildren.Add(draggedItem);
                     }
-                    else if (newParent != null && newParent != RootItem) // Dropping on regular item
-                    {
+                    // Dropping on regular item
+                    else if (newParent != null && newParent != RootItem)
                         // Prevent cyclic parenting
                         if (!IsAncestor(draggedItem, newParent))
                         {
                             draggedItem.Parent = newParent;
                             RootChildren.Remove(draggedItem);
                         }
-                    }
                 }
 
                 Reload();
