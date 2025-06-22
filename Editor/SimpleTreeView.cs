@@ -9,6 +9,7 @@ namespace UnityEssentials
 {
     public class SimpleTreeViewItem : TreeViewItem
     {
+        public bool SupportsChildren = true;
         public SimpleTreeViewItem Parent
         {
             get => parent as SimpleTreeViewItem;
@@ -72,6 +73,7 @@ namespace UnityEssentials
             base.showAlternatingRowBackgrounds = showAlternatingRowBackgrounds;
 
             Reload();
+            SetExpandedRecursive(RootItem.id, true);
         }
 
         public void AddChildren(SimpleTreeViewItem[] rootChildren)
@@ -138,10 +140,22 @@ namespace UnityEssentials
                     if (newParent == null)
                         continue;
 
+                    if (!newParent.SupportsChildren)
+                        continue;
+
                     if (IsAncestor(draggedItem, newParent))
                         continue;
 
-                    draggedItem.Parent = newParent;
+                    draggedItem.Parent = newParent; 
+
+                    if (newParent.children != null)
+                    {
+                        newParent.children.Remove(draggedItem);
+
+                        // Clamp insertAtIndex to a valid range
+                        int insertIndex = Mathf.Clamp(args.insertAtIndex, 0, newParent.children.Count);
+                        newParent.children.Insert(insertIndex, draggedItem);
+                    }
                 }
 
                 Reload();
