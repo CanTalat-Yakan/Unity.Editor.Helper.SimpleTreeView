@@ -1,16 +1,18 @@
 #if UNITY_EDITOR
+using System;
 using System.Collections.Generic;
 using System.Linq;
-using UnityEngine;
 using UnityEditor;
 using UnityEditor.IMGUI.Controls;
-using System;
+using UnityEngine;
+using static PlasticGui.LaunchDiffParameters;
 
 namespace UnityEssentials
 {
     public class SimpleTreeViewItem : TreeViewItem
     {
         public bool SupportsChildren = true;
+        public bool SupportsRenaming = true;
         public SimpleTreeViewItem Parent
         {
             get => parent as SimpleTreeViewItem;
@@ -46,11 +48,18 @@ namespace UnityEssentials
         public SimpleTreeViewItem(int id, int depth, string displayName) : base(id, depth, displayName) { }
         public SimpleTreeViewItem(int id, int depth, string displayName, Texture2D icon) : base(id, depth, displayName) { base.icon = icon; }
 
+        public SimpleTreeViewItem Support(bool children = true, bool renaming = true)
+        {
+            SupportsChildren = children;
+            SupportsRenaming = renaming;
+            return this;
+        }
+
         private static string GetDefaultDisplayName(string displayName = null) =>
             string.IsNullOrEmpty(displayName) ? "TreeViewItem" : displayName;
 
         private static int GenerateUniqueId() =>
-            System.Guid.NewGuid().GetHashCode();
+            Guid.NewGuid().GetHashCode();
     }
 
     public class SimpleTreeView : TreeView
@@ -58,7 +67,6 @@ namespace UnityEssentials
         public TreeViewState TreeViewState;
 
         public SimpleTreeViewItem RootItem { get; private set; }
-        public List<SimpleTreeViewItem> AllTreeViewItems { get; private set; } = new();
 
         public SimpleTreeView(SimpleTreeViewItem[] rootChildren = null,
                               string rootName = "Root",
@@ -71,8 +79,8 @@ namespace UnityEssentials
 
             var icon = EditorGUIUtility.IconContent("GUISkin Icon").image as Texture2D;
             RootItem = new SimpleTreeViewItem(0, 0, rootName, icon);
-            if (rootChildren != null)
-                AddChildren(rootChildren);
+            foreach (var child in rootChildren)
+                child.Parent = RootItem;
 
             base.rowHeight = rowHeight;
             base.showBorder = showBorder;
@@ -83,21 +91,13 @@ namespace UnityEssentials
             SetExpandedRecursive(RootItem.id, true);
         }
 
-        public void AddChild(SimpleTreeViewItem child, SimpleTreeViewItem parent)
+        public void AddItem(SimpleTreeViewItem child, SimpleTreeViewItem parent)
         {
-            AllTreeViewItems.Add(child);
-            child.parent = parent;
-            Debug.Log($"Adding child {child.displayName} to parent {parent.displayName}");
-            Reload();
-        }
-
-        public void AddChildren(params SimpleTreeViewItem[] rootChildren)
-        {
-            AllTreeViewItems.AddRange(rootChildren);
-            foreach (var child in rootChildren)
-                child.Parent = RootItem;
+            child.Parent = parent;
 
             Reload();
+            SetExpanded(child.parent.id, true);
+            SetSelection(new List<int> { child.id }, TreeViewSelectionOptions.RevealAndFrame);
         }
 
         public void OnGUI()
@@ -185,22 +185,27 @@ namespace UnityEssentials
                 return;
 
             var menu = new GenericMenu();
-            menu.AddItem(new GUIContent("Rename"), false, () => BeginRename(item));
+            menu.AddItem(new GUIContent("Rename"), false, () => OnBeginRename(item));
             menu.AddItem(new GUIContent("Delete"), false, () => OnDeleteItem(item));
-            menu.AddSeparator("");
+
+            if (CustomContextMenuAction != null)
+                menu.AddSeparator("");
             foreach (var (name, action) in CustomContextMenuAction)
                 menu.AddItem(new GUIContent(name), false, () => action?.Invoke(item));
 
             menu.ShowAsContext();
         }
 
+        private void OnBeginRename(SimpleTreeViewItem item)
+        {
+            if (item.SupportsRenaming)
+                BeginRename(item);
+        }
+
         private void OnDeleteItem(SimpleTreeViewItem item)
         {
             if (item.Parent != null && item.Parent.children != null)
                 item.Parent.children.Remove(item);
-
-            if (AllTreeViewItems.Contains(item))
-                AllTreeViewItems.Remove(item);
 
             Reload();
         }
@@ -247,7 +252,10 @@ namespace UnityEssentials
                         continue;
 
                     if (newParent == null)
-                        continue;
+                    {
+                        newParent = RootItem;
+                        args.insertAtIndex = int.MaxValue;
+                    }
 
                     if (!newParent.SupportsChildren)
                         continue;
@@ -267,6 +275,8 @@ namespace UnityEssentials
                 }
 
                 Reload();
+                SetExpanded(newParent.id, true);
+                SetSelection(draggedRows.Select(item => item.id).ToList(), TreeViewSelectionOptions.RevealAndFrame);
             }
             return DragAndDropVisualMode.Move;
         }
@@ -281,8 +291,8 @@ namespace UnityEssentials
             }
             return false;
         }
-
-        protected override bool CanRename(TreeViewItem item) => true;
+        protected override bool CanRename(TreeViewItem item) =>
+            item is SimpleTreeViewItem && (item as SimpleTreeViewItem).SupportsRenaming;
         protected override void RenameEnded(RenameEndedArgs args)
         {
             var allItems = GetAllItems();
@@ -301,9 +311,6 @@ namespace UnityEssentials
         {
             var result = new List<SimpleTreeViewItem>();
             CollectItems(RootItem, result);
-            foreach (var child in AllTreeViewItems)
-                if (!result.Contains(child))
-                    CollectItems(child, result);
             return result;
         }
 
