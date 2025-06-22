@@ -65,6 +65,7 @@ namespace UnityEssentials
     public class SimpleTreeView : TreeView
     {
         public TreeViewState TreeViewState;
+        public (string, Action<SimpleTreeViewItem>)[] CustomContextMenuAction;
 
         public SimpleTreeViewItem RootItem { get; private set; }
 
@@ -177,7 +178,6 @@ namespace UnityEssentials
             return new Rect(x + 1, rowRect.y, width + 8, rowRect.height + 1);
         }
 
-        public (string, Action<SimpleTreeViewItem>)[] CustomContextMenuAction;
         protected override void ContextClickedItem(int id)
         {
             var item = FindItem(id, rootItem) as SimpleTreeViewItem;
@@ -220,6 +220,7 @@ namespace UnityEssentials
 
         protected override bool CanStartDrag(CanStartDragArgs args) =>
             !args.draggedItemIDs.Contains(RootItem.id);
+
         protected override void SetupDragAndDrop(SetupDragAndDropArgs args)
         {
             if (hasSearch)
@@ -291,8 +292,10 @@ namespace UnityEssentials
             }
             return false;
         }
+
         protected override bool CanRename(TreeViewItem item) =>
             item is SimpleTreeViewItem && (item as SimpleTreeViewItem).SupportsRenaming;
+
         protected override void RenameEnded(RenameEndedArgs args)
         {
             var allItems = GetAllItems();
