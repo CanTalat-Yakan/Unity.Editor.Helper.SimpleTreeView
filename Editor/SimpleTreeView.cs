@@ -37,9 +37,13 @@ namespace UnityEssentials
             children?.Cast<SimpleTreeViewItem>().ToList() ?? new List<SimpleTreeViewItem>();
 
         public SimpleTreeViewItem() : base(GenerateUniqueId(), 1, GetDefaultDisplayName()) { }
+        public SimpleTreeViewItem(Texture2D icon) : base(GenerateUniqueId(), 1, GetDefaultDisplayName()) { base.icon = icon; }
         public SimpleTreeViewItem(string displayName) : base(GenerateUniqueId(), 1, displayName) { }
+        public SimpleTreeViewItem(string displayName, Texture2D icon) : base(GenerateUniqueId(), 1, displayName) { base.icon = icon; }
         public SimpleTreeViewItem(int id, string displayName) : base(id, 1, displayName) { }
+        public SimpleTreeViewItem(int id, string displayName, Texture2D icon) : base(id, 1, displayName) { base.icon = icon; }
         public SimpleTreeViewItem(int id, int depth, string displayName) : base(id, depth, displayName) { }
+        public SimpleTreeViewItem(int id, int depth, string displayName, Texture2D icon) : base(id, depth, displayName) { base.icon = icon; }
 
         private static string GetDefaultDisplayName(string displayName = null) =>
             string.IsNullOrEmpty(displayName) ? "TreeViewItem" : displayName;
@@ -57,20 +61,22 @@ namespace UnityEssentials
 
         public SimpleTreeView(SimpleTreeViewItem[] rootChildren = null,
                               string rootName = "Root",
-                              int rowHeight = 20,
+                              int rowHeight = 17,
                               bool showBorder = false,
                               bool showAlternatingRowBackgrounds = false)
             : base(new TreeViewState())
         {
             TreeViewState = state;
 
-            RootItem = new SimpleTreeViewItem(0, 0, rootName);
+            var icon = EditorGUIUtility.IconContent("GUISkin Icon").image as Texture2D;
+            RootItem = new SimpleTreeViewItem(0, 0, rootName, icon);
             if (rootChildren != null)
                 AddChildren(rootChildren);
 
             base.rowHeight = rowHeight;
             base.showBorder = showBorder;
             base.showAlternatingRowBackgrounds = showAlternatingRowBackgrounds;
+            base.foldoutOverride = (rect, item, expandedState) => false;
 
             Reload();
             SetExpandedRecursive(RootItem.id, true);
@@ -94,6 +100,84 @@ namespace UnityEssentials
                 GUILayout.ExpandWidth(true));
 
             OnGUI(rect);
+        }
+
+        protected override void RowGUI(RowGUIArgs args)
+        {
+            var isRoot = args.item.depth == 0;
+            var item = args.item;
+            var rect = args.rowRect;
+            var padding = 8;
+            rect.x += padding;
+            rect.width++;
+
+            if (isRoot)
+            {
+                var lineRect = new Rect(rect.x - padding, rect.y + rect.height - 1, rect.width, 1);
+                EditorGUI.DrawRect(lineRect, new Color(0.8f, 0.8f, 0.8f, 0.08f));
+                var backgroundColor = GUI.backgroundColor;
+                var backgroundRect = new Rect(rect.x - padding, rect.y, rect.width, rect.height - 1);
+
+                Color bgColor;
+                if (IsSelected(item.id))
+                {
+                    bgColor = EditorGUIUtility.isProSkin
+                        ? new Color(0.17f, 0.36f, 0.53f, 1f)
+                        : new Color(0.243f, 0.490f, 0.905f, 1.0f);
+                }
+                else
+                {
+                    bgColor = EditorGUIUtility.isProSkin
+                        ? new Color(0.18f, 0.18f, 0.18f, 1.0f)
+                        : new Color(0.85f, 0.85f, 0.85f, 1.0f);
+                }
+
+                EditorGUI.DrawRect(backgroundRect, bgColor);
+
+                GUI.backgroundColor = backgroundColor;
+            }
+
+            const float indentWidth = 16;
+            float indent = item.depth * indentWidth + 16;
+
+            if (item.hasChildren)
+            {
+                var foldoutRect = new Rect(rect.x + indent - 16, rect.y, 16, rect.height);
+                bool expanded = IsExpanded(item.id);
+                bool newExpanded = EditorGUI.Foldout(foldoutRect, expanded, GUIContent.none, true);
+                if (newExpanded != expanded)
+                {
+                    SetExpanded(item.id, newExpanded);
+                }
+            }
+
+            var iconRootXOffset = isRoot ? 0 : -2;
+            var iconRect = new Rect(rect.x + indent + iconRootXOffset, rect.y, rect.height, rect.height);
+            if (item.icon != null)
+                GUI.DrawTexture(iconRect, item.icon, ScaleMode.StretchToFill);
+
+            var label = item.displayName;
+            var labelIconXOffset = item.icon != null ? 18 : 0;
+            var labelRootXOffset = isRoot ? 2 : 0;
+            var labelRect = new Rect(rect.x + indent + labelIconXOffset + labelRootXOffset, rect.y, rect.width, rect.height);
+            GUI.Label(labelRect, label, isRoot ? EditorStyles.boldLabel : EditorStyles.label);
+        }
+
+        protected override Rect GetRenameRect(Rect rowRect, int row, TreeViewItem item)
+        {
+            // Calculate the same indent and icon offset as in RowGUI
+            const float indentWidth = 16;
+            float indent = item.depth * indentWidth + 16;
+            float iconWidth = item.icon != null ? rowRect.height : 0;
+            float labelIconXOffset = item.icon != null ? 16 : 0;
+            float labelRootXOffset = item.depth == 0 ? 2 : 0;
+            float padding = 8 + 3;
+
+            // Start the rename rect after the icon and with extra padding
+            float x = rowRect.x + indent + labelIconXOffset + labelRootXOffset + padding;
+            float width = rowRect.width - (x - rowRect.x) - padding;
+
+            return new Rect(x, rowRect.y, width, rowRect.height + 1);
         }
 
         protected override TreeViewItem BuildRoot()
@@ -146,7 +230,7 @@ namespace UnityEssentials
                     if (IsAncestor(draggedItem, newParent))
                         continue;
 
-                    draggedItem.Parent = newParent; 
+                    draggedItem.Parent = newParent;
 
                     if (newParent.children != null)
                     {
