@@ -91,9 +91,9 @@ namespace UnityEssentials
             SetExpandedRecursive(RootItem.id, true);
         }
 
-        public void AddItem(SimpleTreeViewItem child, SimpleTreeViewItem parent)
+        public void AddItem(SimpleTreeViewItem child, SimpleTreeViewItem parent = null)
         {
-            child.Parent = parent;
+            child.Parent = parent ??= RootItem;
 
             Reload();
             SetExpanded(child.parent.id, true);
