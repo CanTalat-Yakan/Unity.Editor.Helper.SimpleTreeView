@@ -12,6 +12,15 @@ namespace UnityEssentials
     {
         public bool SupportsChildren = true;
         public bool SupportsRenaming = true;
+
+        public string Name => displayName;
+        public object UserData { get; set; }
+        public SimpleTreeViewItem SetUserData(object userData)
+        {
+            UserData = userData;
+            return this;
+        }
+
         public SimpleTreeViewItem Parent
         {
             get => parent as SimpleTreeViewItem;
@@ -100,6 +109,18 @@ namespace UnityEssentials
             SetSelection(new List<int> { child.id }, TreeViewSelectionOptions.RevealAndFrame);
         }
 
+        public SimpleTreeViewItem GetSelectedItem() =>
+            GetSelectedItems().FirstOrDefault();
+
+        public SimpleTreeViewItem[] GetSelectedItems()
+        {
+            var selectedIds = GetSelection();
+            if (selectedIds.Count == 0)
+                return Array.Empty<SimpleTreeViewItem>();
+            var allItems = GetAllItems();
+            return allItems.Where(i => selectedIds.Contains(i.id)).ToArray();
+        }
+
         public void OnGUI()
         {
             var rect = GUILayoutUtility.GetRect(
@@ -162,7 +183,6 @@ namespace UnityEssentials
 
         protected override Rect GetRenameRect(Rect rowRect, int row, TreeViewItem item)
         {
-            // Calculate the same indent and icon offset as in RowGUI
             const float indentWidth = 16;
             float indent = item.depth * indentWidth + 16;
             float iconWidth = item.icon != null ? rowRect.height : 0;
@@ -170,7 +190,6 @@ namespace UnityEssentials
             float labelRootXOffset = item.depth == 0 ? 2 : 0;
             float padding = 8;
 
-            // Start the rename rect after the icon and with extra padding
             float x = rowRect.x + indent + labelIconXOffset + labelRootXOffset + padding;
             float width = rowRect.width - (x - rowRect.x) - padding;
 
@@ -276,7 +295,7 @@ namespace UnityEssentials
 
                 Reload();
                 SetExpanded(newParent.id, true);
-                SetSelection(draggedRows.Select(item => item.id).ToList(), TreeViewSelectionOptions.RevealAndFrame);
+                SetSelection(draggedRows.Select(i => i.id).ToList(), TreeViewSelectionOptions.RevealAndFrame);
             }
             return DragAndDropVisualMode.Move;
         }
