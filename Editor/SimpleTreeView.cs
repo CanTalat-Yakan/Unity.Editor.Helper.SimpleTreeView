@@ -4,6 +4,7 @@ using System.Linq;
 using UnityEngine;
 using UnityEditor;
 using UnityEditor.IMGUI.Controls;
+using System;
 
 namespace UnityEssentials
 {
@@ -61,7 +62,7 @@ namespace UnityEssentials
 
         public SimpleTreeView(SimpleTreeViewItem[] rootChildren = null,
                               string rootName = "Root",
-                              int rowHeight = 17,
+                              int rowHeight = 15,
                               bool showBorder = false,
                               bool showAlternatingRowBackgrounds = false)
             : base(new TreeViewState())
@@ -82,10 +83,18 @@ namespace UnityEssentials
             SetExpandedRecursive(RootItem.id, true);
         }
 
-        public void AddChildren(SimpleTreeViewItem[] rootChildren)
+        public void AddChild(SimpleTreeViewItem child, SimpleTreeViewItem parent)
         {
-            AllTreeViewItems = rootChildren.ToList();
-            foreach (var child in AllTreeViewItems)
+            AllTreeViewItems.Add(child);
+            child.parent = parent;
+            Debug.Log($"Adding child {child.displayName} to parent {parent.displayName}");
+            Reload();
+        }
+
+        public void AddChildren(params SimpleTreeViewItem[] rootChildren)
+        {
+            AllTreeViewItems.AddRange(rootChildren);
+            foreach (var child in rootChildren)
                 child.Parent = RootItem;
 
             Reload();
@@ -115,26 +124,16 @@ namespace UnityEssentials
             {
                 var lineRect = new Rect(rect.x - padding, rect.y + rect.height - 1, rect.width, 1);
                 EditorGUI.DrawRect(lineRect, new Color(0.8f, 0.8f, 0.8f, 0.08f));
-                var backgroundColor = GUI.backgroundColor;
-                var backgroundRect = new Rect(rect.x - padding, rect.y, rect.width, rect.height - 1);
 
-                Color bgColor;
-                if (IsSelected(item.id))
-                {
-                    bgColor = EditorGUIUtility.isProSkin
+                Color backgroundColor = IsSelected(item.id)
+                    ? EditorGUIUtility.isProSkin
                         ? new Color(0.17f, 0.36f, 0.53f, 1f)
-                        : new Color(0.243f, 0.490f, 0.905f, 1.0f);
-                }
-                else
-                {
-                    bgColor = EditorGUIUtility.isProSkin
+                        : new Color(0.243f, 0.490f, 0.905f, 1.0f)
+                    : EditorGUIUtility.isProSkin
                         ? new Color(0.18f, 0.18f, 0.18f, 1.0f)
                         : new Color(0.85f, 0.85f, 0.85f, 1.0f);
-                }
-
-                EditorGUI.DrawRect(backgroundRect, bgColor);
-
-                GUI.backgroundColor = backgroundColor;
+                var backgroundRect = new Rect(rect.x - padding, rect.y, rect.width, rect.height - 1);
+                EditorGUI.DrawRect(backgroundRect, backgroundColor);
             }
 
             const float indentWidth = 16;
@@ -146,9 +145,7 @@ namespace UnityEssentials
                 bool expanded = IsExpanded(item.id);
                 bool newExpanded = EditorGUI.Foldout(foldoutRect, expanded, GUIContent.none, true);
                 if (newExpanded != expanded)
-                {
                     SetExpanded(item.id, newExpanded);
-                }
             }
 
             var iconRootXOffset = isRoot ? 0 : -2;
@@ -157,7 +154,7 @@ namespace UnityEssentials
                 GUI.DrawTexture(iconRect, item.icon, ScaleMode.StretchToFill);
 
             var label = item.displayName;
-            var labelIconXOffset = item.icon != null ? 18 : 0;
+            var labelIconXOffset = item.icon != null ? 17 : 0;
             var labelRootXOffset = isRoot ? 2 : 0;
             var labelRect = new Rect(rect.x + indent + labelIconXOffset + labelRootXOffset, rect.y, rect.width, rect.height);
             GUI.Label(labelRect, label, isRoot ? EditorStyles.boldLabel : EditorStyles.label);
@@ -169,15 +166,43 @@ namespace UnityEssentials
             const float indentWidth = 16;
             float indent = item.depth * indentWidth + 16;
             float iconWidth = item.icon != null ? rowRect.height : 0;
-            float labelIconXOffset = item.icon != null ? 16 : 0;
+            float labelIconXOffset = item.icon != null ? 17 : 0;
             float labelRootXOffset = item.depth == 0 ? 2 : 0;
-            float padding = 8 + 3;
+            float padding = 8;
 
             // Start the rename rect after the icon and with extra padding
             float x = rowRect.x + indent + labelIconXOffset + labelRootXOffset + padding;
             float width = rowRect.width - (x - rowRect.x) - padding;
 
-            return new Rect(x, rowRect.y, width, rowRect.height + 1);
+            return new Rect(x + 1, rowRect.y, width + 8, rowRect.height + 1);
+        }
+
+        public (string, Action<SimpleTreeViewItem>)[] CustomContextMenuAction;
+        protected override void ContextClickedItem(int id)
+        {
+            var item = FindItem(id, rootItem) as SimpleTreeViewItem;
+            if (item == null)
+                return;
+
+            var menu = new GenericMenu();
+            menu.AddItem(new GUIContent("Rename"), false, () => BeginRename(item));
+            menu.AddItem(new GUIContent("Delete"), false, () => OnDeleteItem(item));
+            menu.AddSeparator("");
+            foreach (var (name, action) in CustomContextMenuAction)
+                menu.AddItem(new GUIContent(name), false, () => action?.Invoke(item));
+
+            menu.ShowAsContext();
+        }
+
+        private void OnDeleteItem(SimpleTreeViewItem item)
+        {
+            if (item.Parent != null && item.Parent.children != null)
+                item.Parent.children.Remove(item);
+
+            if (AllTreeViewItems.Contains(item))
+                AllTreeViewItems.Remove(item);
+
+            Reload();
         }
 
         protected override TreeViewItem BuildRoot()
@@ -236,7 +261,6 @@ namespace UnityEssentials
                     {
                         newParent.children.Remove(draggedItem);
 
-                        // Clamp insertAtIndex to a valid range
                         int insertIndex = Mathf.Clamp(args.insertAtIndex, 0, newParent.children.Count);
                         newParent.children.Insert(insertIndex, draggedItem);
                     }
