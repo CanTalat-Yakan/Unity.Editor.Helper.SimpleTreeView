@@ -9,51 +9,42 @@ namespace UnityEssentials
 {
     public class SimpleTreeViewItem : TreeViewItem
     {
-        private SimpleTreeViewItem _parent;
-        private readonly List<SimpleTreeViewItem> _children = new();
-
         public SimpleTreeViewItem Parent
         {
-            get => _parent;
+            get => parent as SimpleTreeViewItem;
             set
             {
-                if (_parent == value)
+                if (Parent == value)
                     return;
 
-                // Remove from old parent's children
-                _parent?._children.Remove(this);
+                if (Parent != null && Parent.children != null)
+                    Parent.children.Remove(this);
 
-                // Add to new parent's children
-                _parent = value;
-                if (_parent != null && !_parent._children.Contains(this))
-                    _parent._children.Add(this);
+                parent = value;
+                if (value != null)
+                {
+                    value.children ??= new();
+                    if (!value.children.Contains(this))
+                        value.children.Add(this);
+                }
             }
         }
 
-        public int ChildCount => _children.Count;
-        public SimpleTreeViewItem GetChild(int index) => _children[index];
-        public IReadOnlyList<SimpleTreeViewItem> Children => _children.AsReadOnly();
+        public int ChildCount => children?.Count ?? 0;
+        public SimpleTreeViewItem GetChild(int index) => children?[index] as SimpleTreeViewItem;
+        public IReadOnlyList<SimpleTreeViewItem> Children =>
+            children?.Cast<SimpleTreeViewItem>().ToList() ?? new List<SimpleTreeViewItem>();
 
-        public SimpleTreeViewItem() : base(GenerateUniqueId(), 0, GetDefaultDisplayName()) { }
-        public SimpleTreeViewItem(string displayName) : base(GenerateUniqueId(), 0, displayName) { }
+        public SimpleTreeViewItem() : base(GenerateUniqueId(), 1, GetDefaultDisplayName()) { }
+        public SimpleTreeViewItem(string displayName) : base(GenerateUniqueId(), 1, displayName) { }
+        public SimpleTreeViewItem(int id, string displayName) : base(id, 1, displayName) { }
+        public SimpleTreeViewItem(int id, int depth, string displayName) : base(id, depth, displayName) { }
 
-        public static string GetDefaultDisplayName(string displayName = null) =>
+        private static string GetDefaultDisplayName(string displayName = null) =>
             string.IsNullOrEmpty(displayName) ? "TreeViewItem" : displayName;
 
-        public static int GenerateUniqueId() =>
+        private static int GenerateUniqueId() =>
             System.Guid.NewGuid().GetHashCode();
-
-        public int CalculateDepth()
-        {
-            int depth = 0;
-            var current = Parent;
-            while (current != null)
-            {
-                depth++;
-                current = current.Parent;
-            }
-            return depth;
-        }
     }
 
     public class SimpleTreeView : TreeView
@@ -61,23 +52,33 @@ namespace UnityEssentials
         public TreeViewState TreeViewState;
 
         public SimpleTreeViewItem RootItem { get; private set; }
-        public List<SimpleTreeViewItem> RootChildren { get; private set; }
+        public List<SimpleTreeViewItem> AllTreeViewItems { get; private set; } = new();
 
-        public SimpleTreeView(SimpleTreeViewItem rootItem,
-                              SimpleTreeViewItem[] rootChildren = null,
+        public SimpleTreeView(SimpleTreeViewItem[] rootChildren = null,
+                              string rootName = "Root",
                               int rowHeight = 20,
                               bool showBorder = false,
                               bool showAlternatingRowBackgrounds = false)
             : base(new TreeViewState())
         {
             TreeViewState = state;
-            RootItem = rootItem ?? new SimpleTreeViewItem("Root");
-            RootItem.depth = 0;
-            RootChildren = rootChildren?.ToList() ?? new List<SimpleTreeViewItem>();
+
+            RootItem = new SimpleTreeViewItem(0, 0, rootName);
+            if (rootChildren != null)
+                AddChildren(rootChildren);
 
             base.rowHeight = rowHeight;
             base.showBorder = showBorder;
             base.showAlternatingRowBackgrounds = showAlternatingRowBackgrounds;
+
+            Reload();
+        }
+
+        public void AddChildren(SimpleTreeViewItem[] rootChildren)
+        {
+            AllTreeViewItems = rootChildren.ToList();
+            foreach (var child in AllTreeViewItems)
+                child.Parent = RootItem;
 
             Reload();
         }
@@ -95,32 +96,10 @@ namespace UnityEssentials
 
         protected override TreeViewItem BuildRoot()
         {
-            // The invisible root
-            var root = new TreeViewItem { id = 0, depth = -1, displayName = "Root" };
-            var items = new List<TreeViewItem> { RootItem };
-
-            // Add RootChildren and their children, all starting at depth 1
-            foreach (var child in RootChildren)
-                AddItemAndChildrenAtDepth(child, 1, items);
-
-            SetupParentsAndChildrenFromDepths(root, items);
+            var root = new TreeViewItem { id = -1, depth = -1, displayName = string.Empty };
+            root.children = new List<TreeViewItem>() { RootItem };
+            SetupDepthsFromParentsAndChildren(root);
             return root;
-        }
-
-        private void AddItemAndChildrenAtDepth(SimpleTreeViewItem item, int depth, List<TreeViewItem> list)
-        {
-            item.depth = depth;
-            list.Add(item);
-            foreach (var child in item.Children)
-                AddItemAndChildrenAtDepth(child, depth + 1, list);
-        }
-
-        private void AddItemAndChildren(SimpleTreeViewItem item, List<TreeViewItem> list)
-        {
-            item.depth = item.CalculateDepth();
-            list.Add(item);
-            foreach (var child in item.Children)
-                AddItemAndChildren(child, list);
         }
 
         protected override bool CanStartDrag(CanStartDragArgs args) =>
@@ -154,24 +133,15 @@ namespace UnityEssentials
                 foreach (var draggedItem in draggedRows)
                 {
                     if (draggedItem == RootItem)
-                        continue; // Skip root item
+                        continue;
 
-                    // Dropping on root item
-                    if (newParent == RootItem)
-                    {
-                        draggedItem.Parent = null;
+                    if (newParent == null)
+                        continue;
 
-                        if (!RootChildren.Contains(draggedItem))
-                            RootChildren.Add(draggedItem);
-                    }
-                    // Dropping on regular item
-                    else if (newParent != null && newParent != RootItem)
-                        // Prevent cyclic parenting
-                        if (!IsAncestor(draggedItem, newParent))
-                        {
-                            draggedItem.Parent = newParent;
-                            RootChildren.Remove(draggedItem);
-                        }
+                    if (IsAncestor(draggedItem, newParent))
+                        continue;
+
+                    draggedItem.Parent = newParent;
                 }
 
                 Reload();
@@ -209,7 +179,7 @@ namespace UnityEssentials
         {
             var result = new List<SimpleTreeViewItem>();
             CollectItems(RootItem, result);
-            foreach (var child in RootChildren)
+            foreach (var child in AllTreeViewItems)
                 if (!result.Contains(child))
                     CollectItems(child, result);
             return result;
