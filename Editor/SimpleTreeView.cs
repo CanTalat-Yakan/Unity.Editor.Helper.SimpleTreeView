@@ -80,7 +80,7 @@ namespace UnityEssentials
     {
         public TreeViewState TreeViewState;
         public GenericMenu ContextMenu;
-        public bool ContextMenuEnabled = false;
+        public bool ContextMenuHandled = false;
         private bool _contextMenuRequested = false;
 
         public SimpleTreeViewItem RootItem { get; private set; }
@@ -145,11 +145,11 @@ namespace UnityEssentials
             {
                 if (_contextMenuRequested)
                 {
-                    ContextMenuEnabled = false;
+                    ContextMenuHandled = false;
                     _contextMenuRequested = false;
                 }
 
-                if (!ContextMenuEnabled)
+                if (!ContextMenuHandled)
                     if (Event.current.button == 1)
                         if ((!GetSelectedItem()?.SupportsChildren) ?? false)
                             ClearAllSelections();
@@ -238,7 +238,7 @@ namespace UnityEssentials
             if (item == null)
                 return;
 
-            ContextMenuEnabled = true;
+            ContextMenuHandled = true;
             _contextMenuRequested = true;
 
             var menu = new GenericMenu();
