@@ -118,7 +118,7 @@ namespace UnityEssentials
 
             Reload();
             SetExpanded(child.parent.id, true);
-            SetSelection(new List<int> { child.id }, TreeViewSelectionOptions.RevealAndFrame);
+            SetSelectedItems(child.id);
         }
 
         public void ClearAllSelections()
@@ -126,6 +126,9 @@ namespace UnityEssentials
             if (GetSelection().Count > 0)
                 SetSelection(new List<int>(), TreeViewSelectionOptions.RevealAndFrame);
         }
+
+        public void SetSelectedItems(params int[] id) =>
+           SetSelection(id, TreeViewSelectionOptions.RevealAndFrame);
 
         public SimpleTreeViewItem GetSelectedItem() =>
             GetSelectedItems().FirstOrDefault();
@@ -139,7 +142,7 @@ namespace UnityEssentials
             return allItems.Where(i => selectedIds.Contains(i.id)).ToArray();
         }
 
-        public void OnGUI()
+        public void Draw()
         {
             if (Event.current.type == EventType.MouseDown)
             {
@@ -344,7 +347,7 @@ namespace UnityEssentials
 
                 Reload();
                 SetExpanded(newParent.id, true);
-                SetSelection(draggedRows.Select(i => i.id).ToList(), TreeViewSelectionOptions.RevealAndFrame);
+                SetSelectedItems(draggedRows.Select(i => i.id).ToArray());
             }
             return DragAndDropVisualMode.Move;
         }
