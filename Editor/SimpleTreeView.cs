@@ -108,7 +108,7 @@ namespace UnityEssentials
             SetExpandedRecursive(RootItem.id, true);
         }
 
-        public void AddItem(SimpleTreeViewItem child, int? parent = null)
+        public void AddItem(SimpleTreeViewItem child, int? parent = null, bool selectNew = true)
         {
             var parentItem = FindItem(parent ??= RootItem.id, rootItem) as SimpleTreeViewItem;
             if (!parentItem.SupportsChildren)
@@ -118,7 +118,9 @@ namespace UnityEssentials
 
             Reload();
             SetExpanded(child.parent.id, true);
-            SetSelectedItems(child.id);
+
+            if (selectNew)
+                SetSelectedItems(child.id);
         }
 
         public void ClearAllSelections()
