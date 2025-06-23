@@ -58,6 +58,11 @@ namespace UnityEssentials
                 }
             }
         }
+        public SimpleTreeViewItem SetParent(SimpleTreeViewItem parent)
+        {
+            Parent = parent;
+            return this;
+        }
 
         public int ChildCount => children?.Count ?? 0;
         public SimpleTreeViewItem GetChild(int index) => children?[index] as SimpleTreeViewItem;
