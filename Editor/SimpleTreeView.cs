@@ -155,9 +155,10 @@ namespace UnityEssentials
                     _contextMenuRequested = false;
                 }
 
-                if (!ContextMenuEnabled)
-                    if ((!GetSelectedItem()?.SupportsChildren) ?? false)
-                        ClearAllSelections();
+                if (Event.current.button == 1)
+                    if (!ContextMenuEnabled)
+                        if ((!GetSelectedItem()?.SupportsChildren) ?? false)
+                            ClearAllSelections();
             }
 
             OnGUI(rect);
