@@ -21,6 +21,7 @@ namespace UnityEssentials
         }
 
         public string Name => displayName;
+        public Texture Icon => icon;
         public object UserData { get; set; }
         public SimpleTreeViewItem SetUserData(object userData)
         {
