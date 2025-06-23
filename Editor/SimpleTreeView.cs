@@ -37,6 +37,9 @@ namespace UnityEssentials
                 if (Parent == value)
                     return;
 
+                if (!value.SupportsChildren)
+                    return;
+
                 if (Parent != null && Parent.children != null)
                     Parent.children.Remove(this);
 
@@ -70,7 +73,9 @@ namespace UnityEssentials
     public class SimpleTreeView : TreeView
     {
         public TreeViewState TreeViewState;
-        public (string, Action<SimpleTreeViewItem>)[] CustomContextMenuAction;
+        public GenericMenu ContextMenu;
+        public bool ContextMenuEnabled = false;
+        private bool _contextMenuRequested = false;
 
         public SimpleTreeViewItem RootItem { get; private set; }
 
@@ -97,13 +102,23 @@ namespace UnityEssentials
             SetExpandedRecursive(RootItem.id, true);
         }
 
-        public void AddItem(SimpleTreeViewItem child, SimpleTreeViewItem parent = null)
+        public void AddItem(SimpleTreeViewItem child, int? parent = null)
         {
-            child.Parent = parent ??= RootItem;
+            var parentItem = FindItem(parent ??= RootItem.id, rootItem) as SimpleTreeViewItem;
+            if (!parentItem.SupportsChildren)
+                return;
+
+            child.Parent = parentItem;
 
             Reload();
             SetExpanded(child.parent.id, true);
             SetSelection(new List<int> { child.id }, TreeViewSelectionOptions.RevealAndFrame);
+        }
+
+        public void ClearAllSelections()
+        {
+            if (GetSelection().Count > 0)
+                SetSelection(new List<int>(), TreeViewSelectionOptions.RevealAndFrame);
         }
 
         public SimpleTreeViewItem GetSelectedItem() =>
@@ -127,6 +142,12 @@ namespace UnityEssentials
                 GUILayout.ExpandWidth(true));
 
             OnGUI(rect);
+
+            if (_contextMenuRequested && Event.current.type == EventType.MouseDown)
+            {
+                ContextMenuEnabled = false;
+                _contextMenuRequested = false;
+            }
         }
 
         protected override void RowGUI(RowGUIArgs args)
@@ -199,14 +220,26 @@ namespace UnityEssentials
             if (item == null)
                 return;
 
+            ContextMenuEnabled = true;
+            _contextMenuRequested = true;
+
             var menu = new GenericMenu();
             menu.AddItem(new GUIContent("Rename"), false, () => OnBeginRename(item));
-            menu.AddItem(new GUIContent("Delete"), false, () => OnDeleteItem(item));
+            if (item != RootItem)
+                menu.AddItem(new GUIContent("Delete"), false, () => OnDeleteItem(item));
 
-            if (CustomContextMenuAction != null)
+            if (ContextMenu != null && item.SupportsChildren)
+            {
                 menu.AddSeparator("");
-            foreach (var (name, action) in CustomContextMenuAction)
-                menu.AddItem(new GUIContent(name), false, () => action?.Invoke(item));
+
+                var bindingFlags = System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic;
+                var field = menu.GetType().GetField("m_MenuItems", bindingFlags);
+                var menuItems = field.GetValue(menu) as System.Collections.IList;
+                var customMenuItems = field.GetValue(ContextMenu) as System.Collections.IList;
+
+                foreach (var customMenuItem in customMenuItems)
+                    menuItems.Add(customMenuItem);
+            }
 
             menu.ShowAsContext();
         }
@@ -220,9 +253,10 @@ namespace UnityEssentials
         private void OnDeleteItem(SimpleTreeViewItem item)
         {
             if (item.Parent != null && item.Parent.children != null)
+            {
                 item.Parent.children.Remove(item);
-
-            Reload();
+                Reload();
+            }
         }
 
         protected override TreeViewItem BuildRoot()
