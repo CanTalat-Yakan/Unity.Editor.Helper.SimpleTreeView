@@ -13,6 +13,13 @@ namespace UnityEssentials
         public bool SupportsChildren = true;
         public bool SupportsRenaming = true;
 
+        public SimpleTreeViewItem Support(bool children = true, bool renaming = true)
+        {
+            SupportsChildren = children;
+            SupportsRenaming = renaming;
+            return this;
+        }
+
         public string Name => displayName;
         public object UserData { get; set; }
         public SimpleTreeViewItem SetUserData(object userData)
@@ -51,17 +58,6 @@ namespace UnityEssentials
         public SimpleTreeViewItem(Texture2D icon) : base(GenerateUniqueId(), 1, GetDefaultDisplayName()) { base.icon = icon; }
         public SimpleTreeViewItem(string displayName) : base(GenerateUniqueId(), 1, displayName) { }
         public SimpleTreeViewItem(string displayName, Texture2D icon) : base(GenerateUniqueId(), 1, displayName) { base.icon = icon; }
-        public SimpleTreeViewItem(int id, string displayName) : base(id, 1, displayName) { }
-        public SimpleTreeViewItem(int id, string displayName, Texture2D icon) : base(id, 1, displayName) { base.icon = icon; }
-        public SimpleTreeViewItem(int id, int depth, string displayName) : base(id, depth, displayName) { }
-        public SimpleTreeViewItem(int id, int depth, string displayName, Texture2D icon) : base(id, depth, displayName) { base.icon = icon; }
-
-        public SimpleTreeViewItem Support(bool children = true, bool renaming = true)
-        {
-            SupportsChildren = children;
-            SupportsRenaming = renaming;
-            return this;
-        }
 
         private static string GetDefaultDisplayName(string displayName = null) =>
             string.IsNullOrEmpty(displayName) ? "TreeViewItem" : displayName;
@@ -87,7 +83,7 @@ namespace UnityEssentials
             TreeViewState = state;
 
             var icon = EditorGUIUtility.IconContent("GUISkin Icon").image as Texture2D;
-            RootItem = new SimpleTreeViewItem(0, 0, rootName, icon);
+            RootItem = new SimpleTreeViewItem(rootName, icon) { id = 0, depth = 0 };
             foreach (var child in rootChildren)
                 child.Parent = RootItem;
 
