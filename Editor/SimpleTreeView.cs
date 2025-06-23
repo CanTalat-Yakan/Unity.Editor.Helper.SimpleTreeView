@@ -245,7 +245,8 @@ namespace UnityEssentials
             _contextMenuRequested = true;
 
             var menu = new GenericMenu();
-            menu.AddItem(new GUIContent("Rename"), false, () => OnBeginRename(item));
+            if (item.SupportsRenaming)
+                menu.AddItem(new GUIContent("Rename"), false, () => OnBeginRename(item));
             if (item != RootItem)
                 menu.AddItem(new GUIContent("Delete"), false, () => OnDeleteItem(item));
 
