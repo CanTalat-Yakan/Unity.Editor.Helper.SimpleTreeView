@@ -22,6 +22,12 @@ namespace UnityEssentials
 
         public string Name => displayName;
         public Texture Icon => icon;
+        public string UserTag { get; set; }
+        public SimpleTreeViewItem SetUserTag(string userTag)
+        {
+            UserTag = userTag;
+            return this;
+        }
         public object UserData { get; set; }
         public SimpleTreeViewItem SetUserData(object userData)
         {
@@ -141,13 +147,20 @@ namespace UnityEssentials
                 GUILayout.ExpandHeight(true),
                 GUILayout.ExpandWidth(true));
 
-            OnGUI(rect);
-
-            if (_contextMenuRequested && Event.current.type == EventType.MouseDown)
+            if (Event.current.type == EventType.MouseDown)
             {
-                ContextMenuEnabled = false;
-                _contextMenuRequested = false;
+                if (_contextMenuRequested)
+                {
+                    ContextMenuEnabled = false;
+                    _contextMenuRequested = false;
+                }
+
+                if (!ContextMenuEnabled)
+                    if ((!GetSelectedItem()?.SupportsChildren) ?? false)
+                        ClearAllSelections();
             }
+
+            OnGUI(rect);
         }
 
         protected override void RowGUI(RowGUIArgs args)
