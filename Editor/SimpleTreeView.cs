@@ -369,6 +369,7 @@ namespace UnityEssentials
         protected override bool CanRename(TreeViewItem item) =>
             item is SimpleTreeViewItem && (item as SimpleTreeViewItem).SupportsRenaming;
 
+        public Action<SimpleTreeViewItem, string> OnRename;
         protected override void RenameEnded(RenameEndedArgs args)
         {
             var allItems = GetAllItems();
@@ -377,6 +378,7 @@ namespace UnityEssentials
                 var item = allItems.FirstOrDefault(i => i.id == args.itemID);
                 if (item != null)
                 {
+                    OnRename?.Invoke(item, args.newName);
                     item.displayName = args.newName;
                     Reload();
                 }
