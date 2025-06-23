@@ -141,12 +141,6 @@ namespace UnityEssentials
 
         public void OnGUI()
         {
-            var rect = GUILayoutUtility.GetRect(
-                0, float.MaxValue,
-                0, float.MaxValue,
-                GUILayout.ExpandHeight(true),
-                GUILayout.ExpandWidth(true));
-
             if (Event.current.type == EventType.MouseDown)
             {
                 if (_contextMenuRequested)
@@ -155,14 +149,24 @@ namespace UnityEssentials
                     _contextMenuRequested = false;
                 }
 
-                if (Event.current.button == 1)
-                    if (!ContextMenuEnabled)
+                if (!ContextMenuEnabled)
+                    if (Event.current.button == 1)
                         if ((!GetSelectedItem()?.SupportsChildren) ?? false)
                             ClearAllSelections();
             }
 
-            OnGUI(rect);
+            OnGUI(GetFullSizeRect());
+
+            if (Event.current.type == EventType.MouseDown && Event.current.button == 0)
+                ClearAllSelections();
         }
+
+        private Rect GetFullSizeRect() =>
+            GUILayoutUtility.GetRect(
+                0, float.MaxValue,
+                0, float.MaxValue,
+                GUILayout.ExpandHeight(true),
+                GUILayout.ExpandWidth(true));
 
         protected override void RowGUI(RowGUIArgs args)
         {
