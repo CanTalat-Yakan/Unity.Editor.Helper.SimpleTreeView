@@ -111,6 +111,7 @@ namespace UnityEssentials
 
             Reload();
             SetExpandedRecursive(RootItem.id, true);
+            SetSelectedItems(RootItem.id);
         }
 
         public void AddItem(SimpleTreeViewItem child, int? parent = null, bool selectNew = true)
