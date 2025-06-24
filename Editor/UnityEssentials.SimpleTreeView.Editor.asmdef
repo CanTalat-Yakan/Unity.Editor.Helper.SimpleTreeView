@@ -1,5 +1,5 @@
 {
-    "name": "UnityEssentials.TreeViewGUI",
+    "name": "UnityEssentials.SimpleTreeView.Editor",
     "rootNamespace": "UnityEssentials",
     "references": [],
     "includePlatforms": [],
