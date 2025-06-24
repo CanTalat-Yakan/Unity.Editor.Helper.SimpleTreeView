@@ -8,85 +8,15 @@ using UnityEngine;
 
 namespace UnityEssentials
 {
-    public class SimpleTreeViewItem : TreeViewItem
-    {
-        public bool SupportsChildren = true;
-        public bool SupportsRenaming = true;
-
-        public SimpleTreeViewItem Support(bool children = true, bool renaming = true)
-        {
-            SupportsChildren = children;
-            SupportsRenaming = renaming;
-            return this;
-        }
-
-        public string Name => displayName;
-        public Texture Icon => icon;
-        public string UserTag { get; set; }
-        public SimpleTreeViewItem SetUserTag(string userTag)
-        {
-            UserTag = userTag;
-            return this;
-        }
-        public object UserData { get; set; }
-        public SimpleTreeViewItem SetUserData(object userData)
-        {
-            UserData = userData;
-            return this;
-        }
-
-        public SimpleTreeViewItem Parent
-        {
-            get => parent as SimpleTreeViewItem;
-            set
-            {
-                if (Parent == value)
-                    return;
-
-                if (!value.SupportsChildren)
-                    return;
-
-                if (Parent != null && Parent.children != null)
-                    Parent.children.Remove(this);
-
-                parent = value;
-                if (value != null)
-                {
-                    value.children ??= new();
-                    if (!value.children.Contains(this))
-                        value.children.Add(this);
-                }
-            }
-        }
-        public SimpleTreeViewItem SetParent(SimpleTreeViewItem parent)
-        {
-            Parent = parent;
-            return this;
-        }
-
-        public int ChildCount => children?.Count ?? 0;
-        public SimpleTreeViewItem GetChild(int index) => children?[index] as SimpleTreeViewItem;
-        public IReadOnlyList<SimpleTreeViewItem> Children =>
-            children?.Cast<SimpleTreeViewItem>().ToList() ?? new List<SimpleTreeViewItem>();
-
-        public SimpleTreeViewItem() : base(GenerateUniqueId(), 1, GetDefaultDisplayName()) { }
-        public SimpleTreeViewItem(Texture2D icon) : base(GenerateUniqueId(), 1, GetDefaultDisplayName()) { base.icon = icon; }
-        public SimpleTreeViewItem(string displayName) : base(GenerateUniqueId(), 1, displayName) { }
-        public SimpleTreeViewItem(string displayName, Texture2D icon) : base(GenerateUniqueId(), 1, displayName) { base.icon = icon; }
-
-        private static string GetDefaultDisplayName(string displayName = null) =>
-            string.IsNullOrEmpty(displayName) ? "TreeViewItem" : displayName;
-
-        private static int GenerateUniqueId() =>
-            Guid.NewGuid().GetHashCode();
-    }
-
     public class SimpleTreeView : TreeView
     {
         public TreeViewState TreeViewState;
+
         public GenericMenu ContextMenu;
         public bool ContextMenuHandled = false;
+
         private bool _contextMenuRequested = false;
+        private bool _allowDuplicateNames;
 
         public SimpleTreeViewItem RootItem { get; private set; }
 
@@ -94,15 +24,21 @@ namespace UnityEssentials
                               string rootName = "Root",
                               int rowHeight = 15,
                               bool showBorder = false,
-                              bool showAlternatingRowBackgrounds = false)
+                              bool showAlternatingRowBackgrounds = false,
+                              bool allowDuplicateNames = false)
             : base(new TreeViewState())
         {
+            _allowDuplicateNames = allowDuplicateNames;
+
             TreeViewState = state;
 
-            var icon = EditorGUIUtility.IconContent("GUISkin Icon").image as Texture2D;
-            RootItem = new SimpleTreeViewItem(rootName, icon) { id = 0, depth = 0 };
-            foreach (var child in rootChildren)
-                child.Parent = RootItem;
+            RootItem = new SimpleTreeViewItem() { id = 0, depth = 0 }
+                .SetIcon(EditorGUIUtility.IconContent("GUISkin Icon").image as Texture2D)
+                .SetName(rootName, allowDuplicateNames);
+
+            if (rootChildren != null)
+                foreach (var child in rootChildren)
+                    child.Parent = RootItem;
 
             base.rowHeight = rowHeight;
             base.showBorder = showBorder;
@@ -349,10 +285,12 @@ namespace UnityEssentials
                     if (newParent.children != null)
                     {
                         newParent.children.Remove(draggedItem);
-
                         int insertIndex = Mathf.Clamp(args.insertAtIndex, 0, newParent.children.Count);
                         newParent.children.Insert(insertIndex, draggedItem);
                     }
+
+                    if (!_allowDuplicateNames)
+                        draggedItem.GetUniqueName();
                 }
 
                 Reload();
@@ -385,7 +323,7 @@ namespace UnityEssentials
                 var item = allItems.FirstOrDefault(i => i.id == args.itemID);
                 if (item != null)
                 {
-                    item.displayName = args.newName;
+                    item.SetName(args.newName, _allowDuplicateNames);
                     OnRename?.Invoke(item);
                     Reload();
                 }

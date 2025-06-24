@@ -1,12 +1,12 @@
+#if UNITY_EDITOR
 using System.Collections.Generic;
 using UnityEditor;
 using UnityEngine;
 
 namespace UnityEssentials
 {
-    public static class SimpleTreeViewBreadcrumbs
+    public static class SimpleTreeViewItemBreadcrumbs
     {
-
         public static void Draw(SimpleTreeViewItem current, System.Action<SimpleTreeViewItem> onClick = null)
         {
             if (current == null)
@@ -36,26 +36,9 @@ namespace UnityEssentials
                         buttonRect.y += 20;
                         buttonRect.x = Event.current.mousePosition.x;
 
-
                         var menu = new GenericMenu();
                         foreach (var child in item.Parent.Children)
-                        {
-                            string displayName = child.displayName;
-                            if (!displayNameCache.Contains(displayName))
-                                displayNameCache.Add(displayName);
-                            else
-                            {
-                                int increment = 1;
-                                while (displayNameCache.Contains($"{child.displayName} ({increment})"))
-                                    increment++;
-
-                                displayName = $"{child.displayName} ({increment})";
-                                displayNameCache.Add(displayName);
-                            }
-
-                            menu.AddItem(new GUIContent(displayName), child == item, () => onClick?.Invoke(child));
-                        }
-
+                            menu.AddItem(new GUIContent(child.UniqueName), child == item, () => onClick?.Invoke(child));
                         menu.DropDown(buttonRect);
                     }
                 }
@@ -69,3 +52,4 @@ namespace UnityEssentials
         }
     }
 }
+#endif
