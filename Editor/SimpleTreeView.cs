@@ -120,15 +120,15 @@ namespace UnityEssentials
         {
             var isRoot = args.item.depth == 0;
             var item = args.item;
-            var rect = args.rowRect;
+            var position = args.rowRect;
             var padding = 8;
-            rect.x += padding;
-            rect.width++;
+            position.x += padding;
+            position.width++;
 
             if (isRoot)
             {
-                var lineRect = new Rect(rect.x - padding, rect.y + rect.height - 1, rect.width, 1);
-                EditorGUI.DrawRect(lineRect, new Color(0.8f, 0.8f, 0.8f, 0.08f));
+                var linePosition = new Rect(position.x - padding, position.y + position.height - 1, position.width, 1);
+                EditorGUI.DrawRect(linePosition, new Color(0.8f, 0.8f, 0.8f, 0.08f));
 
                 Color backgroundColor = IsSelected(item.id)
                     ? EditorGUIUtility.isProSkin
@@ -137,7 +137,7 @@ namespace UnityEssentials
                     : EditorGUIUtility.isProSkin
                         ? new Color(0.18f, 0.18f, 0.18f, 1.0f)
                         : new Color(0.85f, 0.85f, 0.85f, 1.0f);
-                var backgroundRect = new Rect(rect.x - padding, rect.y, rect.width, rect.height - 1);
+                var backgroundRect = new Rect(position.x - padding, position.y, position.width, position.height - 1);
                 EditorGUI.DrawRect(backgroundRect, backgroundColor);
             }
 
@@ -146,23 +146,23 @@ namespace UnityEssentials
 
             if (item.hasChildren)
             {
-                var foldoutRect = new Rect(rect.x + indent - 16, rect.y, 16, rect.height);
+                var foldoutPosition = new Rect(position.x + indent - 16, position.y, 16, position.height);
                 bool expanded = IsExpanded(item.id);
-                bool newExpanded = EditorGUI.Foldout(foldoutRect, expanded, GUIContent.none, true);
+                bool newExpanded = EditorGUI.Foldout(foldoutPosition, expanded, GUIContent.none, true);
                 if (newExpanded != expanded)
                     SetExpanded(item.id, newExpanded);
             }
 
             var iconRootXOffset = isRoot ? 0 : -2;
-            var iconRect = new Rect(rect.x + indent + iconRootXOffset, rect.y, rect.height, rect.height);
+            var iconPosition = new Rect(position.x + indent + iconRootXOffset, position.y, position.height, position.height);
             if (item.icon != null)
-                GUI.DrawTexture(iconRect, item.icon, ScaleMode.StretchToFill);
+                GUI.DrawTexture(iconPosition, item.icon, ScaleMode.StretchToFill);
 
             var label = item.displayName;
             var labelIconXOffset = item.icon != null ? 17 : 0;
             var labelRootXOffset = isRoot ? 2 : 0;
-            var labelRect = new Rect(rect.x + indent + labelIconXOffset + labelRootXOffset, rect.y, rect.width, rect.height);
-            GUI.Label(labelRect, label, isRoot ? EditorStyles.boldLabel : EditorStyles.label);
+            var labelPosition = new Rect(position.x + indent + labelIconXOffset + labelRootXOffset, position.y, position.width, position.height);
+            GUI.Label(labelPosition, label, isRoot ? EditorStyles.boldLabel : EditorStyles.label);
         }
 
         protected override Rect GetRenameRect(Rect rowRect, int row, TreeViewItem item)
@@ -288,9 +288,6 @@ namespace UnityEssentials
                         int insertIndex = Mathf.Clamp(args.insertAtIndex, 0, newParent.children.Count);
                         newParent.children.Insert(insertIndex, draggedItem);
                     }
-
-                    if (!_allowDuplicateNames)
-                        draggedItem.GetUniqueName();
                 }
 
                 Reload();

@@ -28,13 +28,21 @@ namespace UnityEssentials
 
         public string Name => _name;
         private string _name;
-        public string UniqueName => _name;
+        public string UniqueName => _uniqueName;
         private string _uniqueName;
-        public SimpleTreeViewItem SetName(string name, bool makeUnique = true)
+        public SimpleTreeViewItem SetName(string name, bool unique = true)
         {
             _name = name;
+            _uniqueName = name;
+            if(_uniqueName == string.Empty)
+                _uniqueName = UserData?.GetType().Name ?? "FALLBACK";
+
             GetUniqueName();
-            displayName = makeUnique ? UniqueName : Name;
+
+            displayName = unique ? UniqueName : Name;
+            if (Name == string.Empty)
+                displayName = Name;
+
             return this;
         }
 
@@ -73,6 +81,8 @@ namespace UnityEssentials
                     if (!value.children.Contains(this))
                         value.children.Add(this);
                 }
+
+                SetName(Name);
             }
         }
         public SimpleTreeViewItem SetParent(SimpleTreeViewItem parent)
@@ -88,24 +98,28 @@ namespace UnityEssentials
 
         public SimpleTreeViewItem() : base(Guid.NewGuid().GetHashCode(), 1, "TreeViewItem") { }
 
-        public void GetUniqueName()
+        private void GetUniqueName()
         {
             if (parent == null)
                 return;
 
+            string name = UniqueName;
+            if (string.IsNullOrEmpty(name))
+                name = UserData?.GetType().Name ?? "FALLBACK";
+
             var nameCache = new HashSet<string>();
             foreach (var sibling in Parent.Children)
-                if (!string.IsNullOrEmpty(sibling.Name))
-                    nameCache.Add(sibling.Name);
+                if (sibling != this)
+                    nameCache.Add(sibling.UniqueName);
 
-            if (!nameCache.Contains(Name))
+            if (!nameCache.Contains(UniqueName))
                 return;
 
             int increment = 1;
-            while (nameCache.Contains($"{Name} ({increment})"))
+            while (nameCache.Contains($"{name} ({increment})"))
                 increment++;
 
-            _uniqueName = $"{Name} ({increment})";
+            _uniqueName = $"{name} ({increment})";
         }
     }
 }

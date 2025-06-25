@@ -38,7 +38,7 @@ namespace UnityEssentials
 
                         var menu = new GenericMenu();
                         foreach (var child in item.Parent.Children)
-                            menu.AddItem(new GUIContent(child.UniqueName), child == item, () => onClick?.Invoke(child));
+                            menu.AddItem(new GUIContent(child.displayName), child == item, () => onClick?.Invoke(child));
                         menu.DropDown(buttonRect);
                     }
                 }
