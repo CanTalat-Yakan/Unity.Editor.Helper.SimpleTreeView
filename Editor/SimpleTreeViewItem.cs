@@ -33,9 +33,8 @@ namespace UnityEssentials
         public SimpleTreeViewItem SetName(string name, bool unique = true)
         {
             _name = name;
+            //if (string.IsNullOrEmpty(_uniqueName))
             _uniqueName = name;
-            if(_uniqueName == string.Empty)
-                _uniqueName = UserData?.GetType().Name ?? "FALLBACK";
 
             GetUniqueName();
 
@@ -80,9 +79,7 @@ namespace UnityEssentials
                     value.children ??= new();
                     if (!value.children.Contains(this))
                         value.children.Add(this);
-                }
-
-                SetName(Name);
+                };
             }
         }
         public SimpleTreeViewItem SetParent(SimpleTreeViewItem parent)
@@ -92,6 +89,7 @@ namespace UnityEssentials
         }
 
         public int ChildCount => children?.Count ?? 0;
+        public bool HasChildren => ChildCount > 0;
         public SimpleTreeViewItem GetChild(int index) => children?[index] as SimpleTreeViewItem;
         public IReadOnlyList<SimpleTreeViewItem> Children =>
             children?.Cast<SimpleTreeViewItem>().ToList() ?? new List<SimpleTreeViewItem>();
@@ -100,12 +98,11 @@ namespace UnityEssentials
 
         private void GetUniqueName()
         {
+            if (string.IsNullOrEmpty(Name))
+                _uniqueName = UserData?.GetType().Name ?? "FALLBACK";
+
             if (parent == null)
                 return;
-
-            string name = UniqueName;
-            if (string.IsNullOrEmpty(name))
-                name = UserData?.GetType().Name ?? "FALLBACK";
 
             var nameCache = new HashSet<string>();
             foreach (var sibling in Parent.Children)
@@ -116,10 +113,10 @@ namespace UnityEssentials
                 return;
 
             int increment = 1;
-            while (nameCache.Contains($"{name} ({increment})"))
+            while (nameCache.Contains($"{Name} ({increment})"))
                 increment++;
 
-            _uniqueName = $"{name} ({increment})";
+            _uniqueName = $"{Name} ({increment})";
         }
     }
 }

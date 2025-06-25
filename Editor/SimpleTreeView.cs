@@ -20,12 +20,13 @@ namespace UnityEssentials
 
         public SimpleTreeViewItem RootItem { get; private set; }
 
-        public SimpleTreeView(SimpleTreeViewItem[] rootChildren = null,
-                              string rootName = "Root",
-                              int rowHeight = 15,
-                              bool showBorder = false,
-                              bool showAlternatingRowBackgrounds = false,
-                              bool allowDuplicateNames = false)
+        public SimpleTreeView(
+            SimpleTreeViewItem[] rootChildren = null,
+            string rootName = "Root",
+            int rowHeight = 15,
+            bool showBorder = false,
+            bool showAlternatingRowBackgrounds = false,
+            bool allowDuplicateNames = false)
             : base(new TreeViewState())
         {
             _allowDuplicateNames = allowDuplicateNames;
@@ -38,7 +39,10 @@ namespace UnityEssentials
 
             if (rootChildren != null)
                 foreach (var child in rootChildren)
+                {
                     child.Parent = RootItem;
+                    child.SetName(child.Name, !_allowDuplicateNames);
+                }
 
             base.rowHeight = rowHeight;
             base.showBorder = showBorder;
@@ -57,6 +61,8 @@ namespace UnityEssentials
                 return;
 
             child.Parent = parentItem;
+            child.SetName(child.Name, !_allowDuplicateNames);
+
             OnRename?.Invoke(child);
 
             Reload();
@@ -288,6 +294,8 @@ namespace UnityEssentials
                         int insertIndex = Mathf.Clamp(args.insertAtIndex, 0, newParent.children.Count);
                         newParent.children.Insert(insertIndex, draggedItem);
                     }
+
+                    draggedItem.SetName(draggedItem.Name, !_allowDuplicateNames);
                 }
 
                 Reload();
@@ -320,7 +328,7 @@ namespace UnityEssentials
                 var item = allItems.FirstOrDefault(i => i.id == args.itemID);
                 if (item != null)
                 {
-                    item.SetName(args.newName, _allowDuplicateNames);
+                    item.SetName(args.newName, !_allowDuplicateNames);
                     OnRename?.Invoke(item);
                     Reload();
                 }
