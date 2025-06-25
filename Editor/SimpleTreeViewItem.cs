@@ -30,10 +30,10 @@ namespace UnityEssentials
         private string _name;
         public string UniqueName => _uniqueName;
         private string _uniqueName;
+        private string _initialUniqueName;
         public SimpleTreeViewItem SetName(string name, bool unique = true)
         {
             _name = name;
-            //if (string.IsNullOrEmpty(_uniqueName))
             _uniqueName = name;
 
             GetUniqueName();
@@ -42,6 +42,11 @@ namespace UnityEssentials
             if (Name == string.Empty)
                 displayName = Name;
 
+            return this;
+        }
+        public SimpleTreeViewItem SetInitialUniqueName(string initialUniqueName)
+        {
+            _initialUniqueName = initialUniqueName;
             return this;
         }
 
@@ -79,7 +84,8 @@ namespace UnityEssentials
                     value.children ??= new();
                     if (!value.children.Contains(this))
                         value.children.Add(this);
-                };
+                }
+                ;
             }
         }
         public SimpleTreeViewItem SetParent(SimpleTreeViewItem parent)
