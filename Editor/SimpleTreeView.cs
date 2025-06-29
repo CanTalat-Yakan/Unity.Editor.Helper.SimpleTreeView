@@ -113,9 +113,10 @@ namespace UnityEssentials
         public void Draw()
         {
             OnGUI(GetFullSizeRect());
+            PostProcess();
         }
 
-        public void PostProcess()
+        private void PostProcess()
         {
             if (Event.current.type == EventType.MouseDown && Event.current.button == 0)
                 ClearAllSelections();
