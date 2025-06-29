@@ -93,7 +93,7 @@ namespace UnityEssentials
             return allItems.Where(i => selectedIds.Contains(i.id)).ToArray();
         }
 
-        public void Draw()
+        public void PreProcess()
         {
             if (Event.current.type == EventType.MouseDown)
             {
@@ -108,9 +108,15 @@ namespace UnityEssentials
                         if ((!GetSelectedItem()?.SupportsChildren) ?? false)
                             ClearAllSelections();
             }
+        }
 
+        public void Draw()
+        {
             OnGUI(GetFullSizeRect());
+        }
 
+        public void PostProcess()
+        {
             if (Event.current.type == EventType.MouseDown && Event.current.button == 0)
                 ClearAllSelections();
         }
