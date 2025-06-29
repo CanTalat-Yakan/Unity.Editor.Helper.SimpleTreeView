@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using UnityEditor;
 using UnityEditor.IMGUI.Controls;
 using UnityEngine;
 
@@ -9,13 +10,25 @@ namespace UnityEssentials
 {
     public class SimpleTreeViewItem : TreeViewItem
     {
+        public Type[] SupportsTypes = null;
         public bool SupportsChildren = true;
         public bool SupportsRenaming = true;
-
         public SimpleTreeViewItem Support(bool allowChildren = true, bool allowRenaming = true)
         {
             SupportsChildren = allowChildren;
             SupportsRenaming = allowRenaming;
+            return this;
+        }
+        public SimpleTreeViewItem Support(params Type[] types)
+        {
+            SupportsTypes = types;
+            return this;
+        }
+
+        public GenericMenu ContextMenu;
+        public SimpleTreeViewItem SetContextMenu(GenericMenu contextMenu)
+        {
+            ContextMenu = contextMenu;
             return this;
         }
 
@@ -30,7 +43,6 @@ namespace UnityEssentials
         private string _name;
         public string UniqueName => _uniqueName;
         private string _uniqueName;
-        private string _initialUniqueName;
         public SimpleTreeViewItem SetName(string name, bool unique = true)
         {
             _name = name;
@@ -42,11 +54,6 @@ namespace UnityEssentials
             if (Name == string.Empty)
                 displayName = Name;
 
-            return this;
-        }
-        public SimpleTreeViewItem SetInitialUniqueName(string initialUniqueName)
-        {
-            _initialUniqueName = initialUniqueName;
             return this;
         }
 

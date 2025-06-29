@@ -12,7 +12,7 @@ namespace UnityEssentials
     {
         public TreeViewState TreeViewState;
 
-        public GenericMenu ContextMenu;
+        public GenericMenu GlobalContextMenu;
         public bool ContextMenuHandled = false;
 
         private bool _contextMenuRequested = false;
@@ -21,7 +21,6 @@ namespace UnityEssentials
         public SimpleTreeViewItem RootItem { get; private set; }
 
         public SimpleTreeView(
-            SimpleTreeViewItem[] rootChildren = null,
             string rootName = "Root",
             int rowHeight = 15,
             bool showBorder = false,
@@ -36,13 +35,6 @@ namespace UnityEssentials
             RootItem = new SimpleTreeViewItem() { id = 0, depth = 0 }
                 .SetIcon(EditorGUIUtility.IconContent("GUISkin Icon").image as Texture2D)
                 .SetName(rootName, allowDuplicateNames);
-
-            if (rootChildren != null)
-                foreach (var child in rootChildren)
-                {
-                    child.Parent = RootItem;
-                    child.SetName(child.Name, !_allowDuplicateNames);
-                }
 
             base.rowHeight = rowHeight;
             base.showBorder = showBorder;
@@ -208,17 +200,27 @@ namespace UnityEssentials
             if (item != RootItem)
                 menu.AddItem(new GUIContent("Delete"), false, () => OnDeleteItem(item));
 
-            if (ContextMenu != null && item.SupportsChildren)
+            if (item.SupportsChildren && (item.ContextMenu != null || GlobalContextMenu != null))
             {
                 menu.AddSeparator("");
 
                 var bindingFlags = System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic;
                 var field = menu.GetType().GetField("m_MenuItems", bindingFlags);
                 var menuItems = field.GetValue(menu) as System.Collections.IList;
-                var customMenuItems = field.GetValue(ContextMenu) as System.Collections.IList;
 
-                foreach (var customMenuItem in customMenuItems)
-                    menuItems.Add(customMenuItem);
+                if (GlobalContextMenu != null)
+                {
+                    var globalMenuItems = field.GetValue(GlobalContextMenu) as System.Collections.IList;
+                    foreach (var menutem in globalMenuItems)
+                        menuItems.Add(menutem);
+                }
+
+                if (item.ContextMenu != null)
+                {
+                    var customMenuItems = field.GetValue(item.ContextMenu) as System.Collections.IList;
+                    foreach (var menutem in customMenuItems)
+                        menuItems.Add(menutem);
+                }
             }
 
             menu.ShowAsContext();
@@ -288,6 +290,9 @@ namespace UnityEssentials
                     }
 
                     if (!newParent.SupportsChildren)
+                        continue;
+
+                    if (!newParent.SupportsTypes?.Contains(draggedItem.UserData?.GetType()) ?? false)
                         continue;
 
                     if (IsAncestor(draggedItem, newParent))
