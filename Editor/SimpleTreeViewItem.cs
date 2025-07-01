@@ -43,6 +43,12 @@ namespace UnityEssentials
         private string _name;
         public string UniqueName => _uniqueName;
         private string _uniqueName;
+        public SimpleTreeViewItem SetName(string name, out string uniqueName)
+        {
+            SetName(name);
+            uniqueName = UniqueName;
+            return this;
+        }
         public SimpleTreeViewItem SetName(string name, bool unique = true)
         {
             _name = name;

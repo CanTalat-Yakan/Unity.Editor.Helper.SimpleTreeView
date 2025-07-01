@@ -15,6 +15,8 @@ namespace UnityEssentials
         public GenericMenu GlobalContextMenu;
         public bool ContextMenuHandled = false;
 
+        public Action<SimpleTreeViewItem> OnRename;
+
         private bool _contextMenuRequested = false;
         private bool _allowDuplicateNames;
 
@@ -50,6 +52,8 @@ namespace UnityEssentials
         {
             var parentItem = FindItem(parent ??= RootItem.id, rootItem) as SimpleTreeViewItem;
             if (!parentItem.SupportsChildren)
+                return;
+            if(!parentItem.SupportsTypes?.Contains(child.UserData?.GetType()) ?? false)
                 return;
 
             child.Parent = parentItem;
@@ -308,6 +312,7 @@ namespace UnityEssentials
                     }
 
                     draggedItem.SetName(draggedItem.Name, !_allowDuplicateNames);
+                    OnRename?.Invoke(draggedItem);
                 }
 
                 Reload();
@@ -331,7 +336,6 @@ namespace UnityEssentials
         protected override bool CanRename(TreeViewItem item) =>
             item is SimpleTreeViewItem && (item as SimpleTreeViewItem).SupportsRenaming;
 
-        public Action<SimpleTreeViewItem> OnRename;
         protected override void RenameEnded(RenameEndedArgs args)
         {
             var allItems = GetAllItems();
