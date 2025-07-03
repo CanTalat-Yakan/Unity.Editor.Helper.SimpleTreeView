@@ -22,33 +22,35 @@ namespace UnityEssentials
 
             var displayNameCache = new List<string>();
 
-            GUILayout.BeginHorizontal();
-            for (int i = 0; i < chain.Count; i++)
+            using (new EditorGUILayout.HorizontalScope(EditorStyles.toolbar))
             {
-                var item = chain[i];
-
-                if (i > 0)
+                for (int i = 0; i < chain.Count; i++)
                 {
-                    var icon = EditorGUIUtility.IconContent("tab_next").image;
-                    if (GUILayout.Button(icon, EditorStyles.label))
-                    {
-                        var buttonRect = GUILayoutUtility.GetLastRect();
-                        buttonRect.y += 20;
-                        buttonRect.x = Event.current.mousePosition.x;
+                    var item = chain[i];
 
-                        var menu = new GenericMenu();
-                        foreach (var child in item.Parent.Children)
-                            menu.AddItem(new GUIContent(child.displayName), child == item, () => onClick?.Invoke(child));
-                        menu.DropDown(buttonRect);
+                    if (i > 0)
+                    {
+                        var icon = EditorGUIUtility.IconContent("tab_next").image;
+                        if (GUILayout.Button(icon, EditorStyles.label))
+                        {
+                            var buttonRect = GUILayoutUtility.GetLastRect();
+                            buttonRect.y += 20;
+                            buttonRect.x = Event.current.mousePosition.x;
+
+                            var menu = new GenericMenu();
+                            foreach (var child in item.Parent.Children)
+                                menu.AddItem(new GUIContent(child.displayName), child == item, () => onClick?.Invoke(child));
+                            menu.DropDown(buttonRect);
+                        }
                     }
+
+                    var labelStyle = i < chain.Count - 1 ? EditorStyles.label : EditorStyles.boldLabel;
+                    if (GUILayout.Button(item.displayName, labelStyle))
+                        onClick?.Invoke(item);
                 }
 
-                var style = i < chain.Count - 1 ? EditorStyles.label : EditorStyles.boldLabel;
-                if (GUILayout.Button(item.displayName, style))
-                    onClick?.Invoke(item);
+                GUILayout.FlexibleSpace();
             }
-            GUILayout.FlexibleSpace();
-            GUILayout.EndHorizontal();
         }
     }
 }
