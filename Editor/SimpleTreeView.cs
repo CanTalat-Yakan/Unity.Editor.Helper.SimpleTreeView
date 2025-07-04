@@ -75,7 +75,7 @@ namespace UnityEssentials
         }
 
         public void SetSelectedItems(params int[] id) =>
-           SetSelection(id, TreeViewSelectionOptions.RevealAndFrame);
+            SetSelection(id, TreeViewSelectionOptions.FireSelectionChanged);
 
         public SimpleTreeViewItem GetSelectedItem() =>
             GetSelectedItems().FirstOrDefault();
