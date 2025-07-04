@@ -33,14 +33,14 @@ namespace UnityEssentials
                         var icon = EditorGUIUtility.IconContent("tab_next").image;
                         if (GUILayout.Button(icon, EditorStyles.label))
                         {
-                            var buttonRect = GUILayoutUtility.GetLastRect();
-                            buttonRect.y += 20;
-                            buttonRect.x = Event.current.mousePosition.x;
+                            var buttonPosition = GUILayoutUtility.GetLastRect();
+                            buttonPosition.y += 20;
+                            buttonPosition.x = Event.current.mousePosition.x;
 
                             var menu = new GenericMenu();
                             foreach (var child in item.Parent.Children)
                                 menu.AddItem(new GUIContent(child.displayName), child == item, () => onClick?.Invoke(child));
-                            menu.DropDown(buttonRect);
+                            menu.DropDown(buttonPosition);
                         }
                     }
 
