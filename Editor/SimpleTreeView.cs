@@ -88,6 +88,13 @@ namespace UnityEssentials
             var allItems = GetAllItems();
             return allItems.Where(i => selectedIds.Contains(i.id)).ToArray();
         }
+        
+        public void BeginRename(int id)
+        {
+            var item = FindItem(id, rootItem) as SimpleTreeViewItem;
+            if (item != null && item.SupportsRenaming)
+                base.BeginRename(item);
+        }
 
         public void PreProcess()
         {
@@ -306,8 +313,12 @@ namespace UnityEssentials
 
                     if (newParent.children != null)
                     {
+                        int oldIndex = newParent.children.IndexOf(draggedItem);
                         newParent.children.Remove(draggedItem);
                         int insertIndex = Mathf.Clamp(args.insertAtIndex, 0, newParent.children.Count);
+                        // If moving within the same parent and downwards, adjust index
+                        if (oldIndex != -1 && insertIndex > oldIndex)
+                            insertIndex--;
                         newParent.children.Insert(insertIndex, draggedItem);
                     }
 
