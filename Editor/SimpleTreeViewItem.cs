@@ -110,7 +110,7 @@ namespace UnityEssentials
         public int ChildCount => children?.Count ?? 0;
         public bool HasChildren => ChildCount > 0;
         public SimpleTreeViewItem GetChild(int index) => children?[index] as SimpleTreeViewItem;
-        public IReadOnlyList<SimpleTreeViewItem> Children =>
+        public List<SimpleTreeViewItem> Children =>
             children?.Cast<SimpleTreeViewItem>().ToList() ?? new List<SimpleTreeViewItem>();
 
         public SimpleTreeViewItem() : base(Guid.NewGuid().GetHashCode(), 1, "TreeViewItem") { }
